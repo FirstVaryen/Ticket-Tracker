@@ -1,0 +1,54 @@
+<template>
+    <lightning-card title={cardTitle} icon-name="standard:case">
+        <div slot="actions">
+            <lightning-combobox
+                name="priorityFilter"
+                label="Filter by Priority"
+                variant="label-hidden"
+                value={filterPriority}
+                options={priorityOptions}
+                onchange={handleFilterChange}
+                class="slds-m-bottom_none">
+            </lightning-combobox>
+        </div>
+        <div class="slds-p-horizontal_medium">
+            <template lwc:if={isLoading}>
+                <lightning-spinner alternative-text="Loading tickets" size="small"></lightning-spinner>
+            </template>
+
+            <template lwc:if={error}>
+                <p class="slds-text-color_error">{error}</p>
+            </template>
+
+            <template lwc:if={isEmpty}>
+                <p class="slds-text-color_weak slds-m-top_medium">No tickets found for this priority.</p>
+            </template>
+
+            <template lwc:if={hasTickets}>
+                <ul class="slds-has-dividers_bottom-space slds-m-top_medium">
+                    <template for:each={tickets} for:item="ticket">
+                        <li key={ticket.Id} class="slds-item ticket-row">
+                            <div class="ticket-info">
+                                <a href="javascript:void(0);" data-id={ticket.Id} onclick={handleNavigate} class="slds-text-heading_small slds-truncate slds-text-link" title={ticket.Subject__c}>
+                                    {ticket.Subject__c}
+                                </a>
+                                <p class="slds-text-body_small slds-m-top_xx-small">
+                                    <span class="slds-text-color_weak">Status:</span> {ticket.Status__c}
+                                    <span class="slds-m-left_small slds-text-color_weak">Priority:</span>
+                                    <span class={ticket.priorityClass}>{ticket.Priority__c}</span>
+                                </p>
+                            </div>
+                            <lightning-button
+                                label="Close"
+                                variant="brand"
+                                data-id={ticket.Id}
+                                disabled={closingId}
+                                onclick={handleClose}
+                            ></lightning-button>
+                        </li>
+                    </template>
+                </ul>
+            </template>
+        </div>
+    </lightning-card>
+</template>

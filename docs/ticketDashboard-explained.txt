@@ -1,0 +1,245 @@
+================================================================================
+HILLARY'S LIGHTNING WEB COMPONENT (LWC) EXPLANATION & CODE
+Component Name: ticketDashboard
+================================================================================
+
+This document contains all the code Hillary wrote for the "ticketDashboard" LWC,
+along with an explanation of what each file does.
+
+--------------------------------------------------------------------------------
+1. ticketDashboard.html (The User Interface)
+--------------------------------------------------------------------------------
+Explanation:
+This file defines what the user sees on the screen.
+- It uses a `<lightning-card>` as the main container.
+- It has a `<lightning-combobox>` at the top right for the Priority Filter.
+- It uses conditional rendering tags (`lwc:if={isLoading}`, `lwc:if={isEmpty}`) to show a loading spinner or a "No tickets" message when appropriate.
+- It loops through the tickets using `<template for:each={tickets} for:item="ticket">` to dynamically generate a list item `<li>` for every ticket.
+- We recently added an `<a>` anchor tag with an `onclick` handler so users can click the subject to navigate to the record.
+- It includes a "Close" `<lightning-button>` that passes the ticket's ID to JavaScript when clicked.
+
+Code:
+<template>
+    <lightning-card title={cardTitle} icon-name="standard:case">
+        <div slot="actions">
+            <lightning-combobox
+                name="priorityFilter"
+                label="Filter by Priority"
+                variant="label-hidden"
+                value={filterPriority}
+                options={priorityOptions}
+                onchange={handleFilterChange}
+                class="slds-m-bottom_none">
+            </lightning-combobox>
+        </div>
+        <div class="slds-p-horizontal_medium">
+            <template lwc:if={isLoading}>
+                <lightning-spinner alternative-text="Loading tickets" size="small"></lightning-spinner>
+            </template>
+
+            <template lwc:if={error}>
+                <p class="slds-text-color_error">{error}</p>
+            </template>
+
+            <template lwc:if={isEmpty}>
+                <p class="slds-text-color_weak slds-m-top_medium">No tickets found for this priority.</p>
+            </template>
+
+            <template lwc:if={hasTickets}>
+                <ul class="slds-has-dividers_bottom-space slds-m-top_medium">
+                    <template for:each={tickets} for:item="ticket">
+                        <li key={ticket.Id} class="slds-item ticket-row">
+                            <div class="ticket-info">
+                                <a href="javascript:void(0);" data-id={ticket.Id} onclick={handleNavigate} class="slds-text-heading_small slds-truncate slds-text-link" title={ticket.Subject__c}>
+                                    {ticket.Subject__c}
+                                </a>
+                                <p class="slds-text-body_small slds-m-top_xx-small">
+                                    <span class="slds-text-color_weak">Status:</span> {ticket.Status__c}
+                                    <span class="slds-m-left_small slds-text-color_weak">Priority:</span>
+                                    <span class={ticket.priorityClass}>{ticket.Priority__c}</span>
+                                </p>
+                            </div>
+                            <lightning-button
+                                label="Close"
+                                variant="brand"
+                                data-id={ticket.Id}
+                                disabled={closingId}
+                                onclick={handleClose}
+                            ></lightning-button>
+                        </li>
+                    </template>
+                </ul>
+            </template>
+        </div>
+    </lightning-card>
+</template>
+
+
+--------------------------------------------------------------------------------
+2. ticketDashboard.js (The JavaScript Controller)
+--------------------------------------------------------------------------------
+Explanation:
+This file handles the logic, data fetching, and user interactions.
+- `NavigationMixin` is imported to allow the component to redirect the user to a ticket's record page when clicked.
+- `@wire(getOpenTickets)` automatically calls Jemimah's Apex controller in the background to fetch open tickets as soon as the component loads.
+- `get tickets()` is a "getter" function that filters the list of tickets in real-time based on the dropdown selection (All, Low, Medium, High).
+- `handleNavigate(event)` reads the ticket ID and tells Salesforce to open that specific record page.
+- `handleClose(event)` is triggered when the "Close" button is clicked. It calls the `closeTicket` Apex method, waits for it to finish, shows a green Success toast message, and then uses `refreshApex` to immediately reload the list of open tickets so the closed one disappears.
+
+Code:
+import { LightningElement, wire } from 'lwc';
+import { NavigationMixin } from 'lightning/navigation';
+import { refreshApex } from '@salesforce/apex';
+import { ShowToastEvent } from 'lightning/platformShowToastEvent';
+import getOpenTickets from '@salesforce/apex/TicketController.getOpenTickets';
+import closeTicket from '@salesforce/apex/TicketController.closeTicket';
+
+export default class TicketDashboard extends NavigationMixin(LightningElement) {
+    allTickets;
+    error;
+    closingId;
+    wiredTicketsResult;
+    filterPriority = 'All';
+
+    get priorityOptions() {
+        return [
+            { label: 'All Priorities', value: 'All' },
+            { label: 'Low', value: 'Low' },
+            { label: 'Medium', value: 'Medium' },
+            { label: 'High', value: 'High' }
+        ];
+    }
+
+    handleFilterChange(event) {
+        this.filterPriority = event.detail.value;
+    }
+
+    @wire(getOpenTickets)
+    wiredTickets(result) {
+        this.wiredTicketsResult = result;
+        if (result.data) {
+            this.allTickets = result.data.map((ticket) => ({
+                ...ticket,
+                priorityClass: 'slds-badge ' + this.priorityBadge(ticket.Priority__c)
+            }));
+            this.error = undefined;
+        } else if (result.error) {
+            this.error = this.reduceError(result.error);
+            this.allTickets = undefined;
+        }
+    }
+
+    get tickets() {
+        if (!this.allTickets) return undefined;
+        if (this.filterPriority === 'All') return this.allTickets;
+        return this.allTickets.filter(t => t.Priority__c === this.filterPriority);
+    }
+
+    get isLoading() {
+        return !this.allTickets && !this.error;
+    }
+
+    get hasTickets() {
+        return this.tickets && this.tickets.length > 0;
+    }
+
+    get isEmpty() {
+        return this.tickets && this.tickets.length === 0;
+    }
+
+    get cardTitle() {
+        const count = this.tickets ? this.tickets.length : 0;
+        return `Open Support Tickets (${count})`;
+    }
+
+    handleNavigate(event) {
+        event.preventDefault();
+        const recordId = event.currentTarget.dataset.id;
+        this[NavigationMixin.Navigate]({
+            type: 'standard__recordPage',
+            attributes: {
+                recordId: recordId,
+                actionName: 'view'
+            }
+        });
+    }
+
+    async handleClose(event) {
+        const ticketId = event.target.dataset.id;
+        this.closingId = ticketId;
+        try {
+            await closeTicket({ ticketId });
+            await refreshApex(this.wiredTicketsResult);
+            this.dispatchEvent(
+                new ShowToastEvent({ title: 'Ticket closed', variant: 'success' })
+            );
+        } catch (error) {
+            this.dispatchEvent(
+                new ShowToastEvent({
+                    title: 'Could not close ticket',
+                    message: this.reduceError(error),
+                    variant: 'error'
+                })
+            );
+        } finally {
+            this.closingId = undefined;
+        }
+    }
+
+    priorityBadge(priority) {
+        if (priority === 'High') return 'slds-theme_error';
+        if (priority === 'Medium') return 'slds-theme_warning';
+        return '';
+    }
+
+    reduceError(error) {
+        if (error?.body?.message) return error.body.message;
+        if (Array.isArray(error?.body)) return error.body.map((e) => e.message).join(', ');
+        return error?.message || 'Unknown error';
+    }
+}
+
+
+--------------------------------------------------------------------------------
+3. ticketDashboard.js-meta.xml (The Configuration File)
+--------------------------------------------------------------------------------
+Explanation:
+This XML file exposes the component to Salesforce so it can be used in the App Builder.
+- `<isExposed>true</isExposed>` makes it visible to Admins in the UI.
+- The `<targets>` section defines exactly WHERE the component is allowed to be placed (App Pages, Home Pages, Record Pages, and Tabs).
+
+Code:
+<?xml version="1.0" encoding="UTF-8"?>
+<LightningComponentBundle xmlns="http://soap.sforce.com/2006/04/metadata">
+    <apiVersion>62.0</apiVersion>
+    <isExposed>true</isExposed>
+    <masterLabel>Ticket Dashboard</masterLabel>
+    <description>Shows open support tickets with a one-click Close action.</description>
+    <targets>
+        <target>lightning__AppPage</target>
+        <target>lightning__HomePage</target>
+        <target>lightning__RecordPage</target>
+        <target>lightning__Tab</target>
+    </targets>
+</LightningComponentBundle>
+
+
+--------------------------------------------------------------------------------
+4. ticketDashboard.css (The Styling)
+--------------------------------------------------------------------------------
+Explanation:
+A tiny CSS file that ensures the tickets look neat.
+- It uses Flexbox (`display: flex; align-items: center; justify-content: space-between;`) on each `.ticket-row` to ensure the ticket info is on the left and the Close button is pushed nicely to the right side.
+
+Code:
+.ticket-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.75rem;
+}
+
+.ticket-info {
+    min-width: 0;
+    flex: 1;
+}

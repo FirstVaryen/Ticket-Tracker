@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Package xmlns="http://soap.sforce.com/2006/04/metadata">
+    <types><members>Ticket_Tracker</members><name>CustomApplication</name></types>
+    <types><members>Support_Ticket__c</members><name>CustomObject</name></types>
+    <types><members>Support_Ticket__c</members><members>Support_Dashboard</members><name>CustomTab</name></types>
+    <types><members>Ticket_Tracker_Home</members><members>Ticket_Tracker_UtilityBar</members><members>Support_Dashboard</members><name>FlexiPage</name></types>
+    <types><members>Support_Ticket__c-Support Ticket Layout</members><name>Layout</name></types>
+    <types><members>ticketDashboard</members><name>LightningComponentBundle</name></types>
+    <types><members>TicketController</members><members>TicketControllerTest</members><members>SupportTicketTriggerHandler</members><members>SupportTicketTriggerTest</members><name>ApexClass</name></types>
+    <types><members>SupportTicketTrigger</members><name>ApexTrigger</name></types>
+    <types><members>High_Priority_Support_Ticket_Email</members><name>Flow</name></types>
+    <types><members>Support_Ticket__c.High_Priority_Support_Ticket_Alert</members><name>WorkflowAlert</name></types>
+    <types><members>unfiled$public/High_Priority_Support_Ticket</members><name>EmailTemplate</name></types>
+    <version>62.0</version>
+</Package>

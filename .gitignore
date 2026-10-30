@@ -1,0 +1,8 @@
+.sf/
+.sfdx/
+.localdevserver/
+node_modules/
+**/jsconfig.json
+**/.eslintrc.json
+.vscode/
+*.log

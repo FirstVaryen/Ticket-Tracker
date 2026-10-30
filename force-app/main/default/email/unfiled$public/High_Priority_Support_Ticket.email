@@ -1,0 +1,15 @@
+Hello Support Team,
+
+A new HIGH-PRIORITY support ticket has been created and requires immediate attention.
+
+Ticket Number: {!Support_Ticket__c.Name}
+Subject: {!Support_Ticket__c.Subject__c}
+Priority: {!Support_Ticket__c.Priority__c}
+Status: {!Support_Ticket__c.Status__c}
+
+Description: {!Support_Ticket__c.Description__c}
+
+Please review and attend to this ticket as soon as possible.
+
+Thank you,
+Support Ticket Tracker
