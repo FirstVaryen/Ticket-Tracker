@@ -16,6 +16,7 @@ public with sharing class TicketController {
             Id = ticketId,
             Status__c = 'Closed'
         );
-        update ticket;
+        // Runs with the user's own permissions, so someone who cannot edit Status cannot close a ticket here either.
+        update as user ticket;
     }
 }

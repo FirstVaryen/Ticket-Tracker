@@ -37,3 +37,11 @@ Before you deploy, open `force-app/main/default/workflows/Support_Ticket__c.work
 ## Tech
 
 Salesforce Platform · Apex · Lightning Web Components · Flow · API v62.0
+
+## Repository Maintenance
+
+**14 Nov 2026: review and one fix.**
+
+- **Fixed:** `TicketController.closeTicket` saved the ticket in system mode, so a user without edit access to the Status field could still close tickets from the dashboard. It now saves with `update as user`, which applies that user's own object and field permissions. Everything else in the method is unchanged.
+- **Reviewed, not changed: duplicate rule.** The project has no declarative Duplicate Rule, Matching Rule or validation rule. Duplicate prevention is the Apex check in `SupportTicketTriggerHandler`, which runs when a ticket is **created** (before insert), as described above. Editing an existing ticket's subject or contact, or reopening a closed ticket, is outside the rule as built.
+- **Reviewed, not changed:** status rules (BR-001, BR-002), bulk handling (one query per batch) and the LWC dashboard all work as described.
